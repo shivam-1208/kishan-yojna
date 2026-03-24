@@ -11,7 +11,7 @@ opencv-python-headless
 
 groq
 python-dotenv
-gunicorn
+
 joblib
 
 scikit-learn
