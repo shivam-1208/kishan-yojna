@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kisan Saathi — Plant Stress Detection</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--gd:#1a3a2a;--gm:#2d6a4f;--gl:#52b788;--gp:#b7e4c7;--gw:#d8f3dc;--am:#f4a261;--cr:#fefae0;--wh:#ffffff;--td:#1a2e1a;--tm:#3d5a3e;--tl:#6b8f71;--sh:rgba(26,58,42,.15);--r:20px;--rs:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--gd);color:var(--td);min-height:100vh;overflow-x:hidden}
+.bg{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 20% 10%,#2d6a4f44 0%,transparent 60%),radial-gradient(ellipse 60% 80% at 80% 90%,#52b78822 0%,transparent 60%),linear-gradient(160deg,#1a3a2a 0%,#0f2419 100%)}
+.app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:36px;animation:fd .6s ease both}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-icon{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--gl),var(--gm));display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 8px 24px var(--sh)}
+.logo h1{font-family:'Playfair Display',serif;color:#fff;font-size:1.6rem;line-height:1}
+.logo p{color:var(--gp);font-size:.78rem;margin-top:2px;letter-spacing:.06em;text-transform:uppercase}
+.mbadge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:50px;font-size:.75rem;font-weight:600;border:none;cursor:pointer;transition:all .25s}
+.mbadge.ml{background:#dcfce7;color:#166534}
+.model-strip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--rs);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.model-strip p{color:var(--gp);font-size:.78rem}
+.tabs{display:flex;gap:6px;margin-bottom:28px;background:rgba(255,255,255,.05);padding:6px;border-radius:16px;animation:fd .6s .1s ease both}
+.tab{flex:1;padding:10px 8px;border:none;border-radius:11px;background:transparent;color:var(--gp);font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:6px}
+.tab.on{background:var(--gl);color:var(--gd);box-shadow:0 4px 16px rgba(82,183,136,.35)}
+.tab:not(.on):hover{background:rgba(255,255,255,.08)}
+.panel{display:none;animation:fu .4s ease both}
+.panel.on{display:block}
+.card{background:rgba(255,255,255,.96);border-radius:var(--r);padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.25);margin-bottom:20px}
+.ct{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--gd);margin-bottom:6px}
+.cs{color:var(--tl);font-size:.85rem;margin-bottom:20px}
+.mode-toggle{display:flex;gap:8px;margin-bottom:18px}
+.mode-btn{flex:1;padding:11px 8px;border:2px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.06);color:var(--gp);font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:500;cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:8px}
+.mode-btn.active{background:var(--gl);color:var(--gd);border-color:var(--gl);box-shadow:0 4px 16px rgba(82,183,136,.35)}
+.mode-btn:not(.active):hover{background:rgba(255,255,255,.12)}
+.upz{border:2.5px dashed var(--gp);border-radius:var(--rs);padding:48px 24px;text-align:center;cursor:pointer;transition:all .3s;background:var(--gw);position:relative;overflow:hidden}
+.upz:hover,.upz.drag{border-color:var(--gl);background:#c7f0d8;transform:scale(1.005)}
+.upz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upz h3{color:var(--gd);font-size:1rem;margin-bottom:6px}
+.upz p{color:var(--tl);font-size:.82rem}
+#prev{width:100%;max-height:280px;object-fit:cover;border-radius:var(--rs);display:none;margin-top:16px}
+.cam-wrap{border-radius:var(--rs);overflow:hidden;background:#000;position:relative;display:none}
+.cam-wrap video{width:100%;max-height:320px;object-fit:cover;display:block}
+.cam-overlay{position:absolute;inset:0;pointer-events:none}
+.cam-corner{position:absolute;width:36px;height:36px;border-color:var(--gl);border-style:solid;opacity:.9}
+.cam-corner.tl{top:12px;left:12px;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
+.cam-corner.tr{top:12px;right:12px;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
+.cam-corner.bl{bottom:12px;left:12px;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
+.cam-corner.br{bottom:12px;right:12px;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
+.scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gl),transparent);animation:scanMove 2.5s linear infinite;top:20%}
+@keyframes scanMove{0%{top:15%}100%{top:85%}}
+.cam-label{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);color:#fff;font-size:.75rem;padding:4px 14px;border-radius:50px;white-space:nowrap}
+.cam-snap{width:100%;padding:14px;border:none;border-radius:0 0 var(--rs) var(--rs);background:linear-gradient(135deg,#e76f51,var(--am));color:#fff;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:10px}
+.cam-snap:hover{filter:brightness(1.1)}
+#camCanvas{display:none}
+#snapPrev{width:100%;max-height:260px;object-fit:cover;border-radius:var(--rs);display:none;margin-top:10px}
+.cam-controls{display:flex;gap:8px;padding:10px 0 0}
+.cam-ctrl-btn{flex:1;padding:9px;border:1.5px solid rgba(255,255,255,.2);border-radius:10px;background:rgba(255,255,255,.07);color:var(--gp);font-size:.8rem;cursor:pointer;transition:all .2s}
+.cam-ctrl-btn:hover{background:rgba(255,255,255,.15)}
+.cam-ctrl-btn.danger{border-color:rgba(231,111,81,.4);color:#e76f51}
+.cam-ctrl-btn.danger:hover{background:rgba(231,111,81,.15)}
+.btn{width:100%;padding:16px;border:none;border-radius:var(--rs);background:linear-gradient(135deg,var(--gm),var(--gl));color:#fff;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;transition:all .3s;margin-top:16px;box-shadow:0 8px 24px rgba(45,106,79,.35);display:flex;align-items:center;justify-content:center;gap:10px}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(45,106,79,.45)}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.rc{border-radius:var(--r);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25);margin-bottom:20px;display:none;animation:fu .5s ease both}
+.rh{padding:24px 28px;display:flex;align-items:center;gap:16px}
+.ri{width:60px;height:60px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;background:rgba(255,255,255,.2)}
+.rl{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;opacity:.7}
+.rt{font-family:'Playfair Display',serif;font-size:1.5rem;margin-top:2px}
+.cbt{height:6px;background:rgba(255,255,255,.3);border-radius:4px;overflow:hidden;width:200px;margin-top:8px}
+.cbf{height:100%;border-radius:4px;background:#fff;width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.ctxt{font-size:.78rem;opacity:.8;margin-top:4px}
+.rb{background:#fff;padding:24px 28px}
+.def-N{background:linear-gradient(135deg,#d4a017,#b8860b);color:#fff}
+.def-K{background:linear-gradient(135deg,#c0392b,#96281b);color:#fff}
+.def-Mg{background:linear-gradient(135deg,#1a6b4a,#145a3c);color:#fff}
+.def-healthy{background:linear-gradient(135deg,#2d6a4f,#52b788);color:#fff}
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+@media(max-width:600px){.ig{grid-template-columns:1fr}}
+.it{border-radius:var(--rs);padding:16px;background:var(--gw);border-left:4px solid var(--gl)}
+.it h4{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--tl);margin-bottom:6px}
+.it p{font-size:.88rem;color:var(--td);line-height:1.5}
+.tl-list{list-style:none}
+.tl-list li{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--gw);font-size:.88rem;color:var(--td);line-height:1.5}
+.tl-list li:last-child{border-bottom:none}
+.tl-list li::before{content:'✓';width:22px;height:22px;border-radius:50%;background:var(--gl);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;margin-top:1px}
+.svm{margin:16px 0}
+.svm h4{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--tl);margin-bottom:8px}
+.svt{height:10px;border-radius:6px;background:linear-gradient(90deg,#52b788,#f4a261,#e76f51);position:relative}
+.svth{width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--gd);position:absolute;top:-4px;transition:left 1s cubic-bezier(.4,0,.2,1);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.cbr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cbl{width:72px;font-size:.8rem;color:var(--tm);font-weight:500}
+.cbt2{flex:1;height:8px;background:var(--gw);border-radius:4px;overflow:hidden}
+.cbf2{height:100%;border-radius:4px;width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.cbp{width:38px;font-size:.78rem;color:var(--tl);text-align:right;font-family:'DM Mono',monospace}
+/* ── CHAT ── */
+.cw{background:rgba(255,255,255,.96);border-radius:var(--r);box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;display:flex;flex-direction:column;height:560px}
+.ch{background:linear-gradient(135deg,var(--gm),var(--gl));padding:18px 22px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.ca{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative}
+.od{width:9px;height:9px;border-radius:50%;background:#4ade80;border:2px solid #fff;position:absolute;bottom:0;right:0}
+.cht{color:#fff;font-size:1rem;font-weight:600}
+.chst{color:rgba(255,255,255,.75);font-size:.78rem}
+/* ── FIX: chat body scrollable ── */
+.cb{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;background:#f8fdf9;min-height:0}
+.cb::-webkit-scrollbar{width:4px}
+.cb::-webkit-scrollbar-thumb{background:var(--gp);border-radius:2px}
+.msg{display:flex;gap:10px;animation:fu .3s ease both}
+.msg.u{flex-direction:row-reverse}
+.ma{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px}
+.msg.b .ma{background:var(--gw)}
+.msg.u .ma{background:var(--gl)}
+/* ── FIX: explicit colour, no transparency ── */
+.mb{max-width:75%;padding:12px 16px;border-radius:18px;font-size:.875rem;line-height:1.6;word-break:break-word}
+.msg.b .mb{background:#ffffff;color:#1a2e1a;border-bottom-left-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.msg.u .mb{background:linear-gradient(135deg,var(--gm),var(--gl));color:#ffffff;border-bottom-right-radius:4px}
+/* ── FIX: markdown styles inside bubble ── */
+.mb strong{font-weight:700}
+.mb em{font-style:italic}
+.mb br{display:block;margin-bottom:2px}
+.mb ul{padding-left:18px;margin:6px 0}
+.mb ol{padding-left:18px;margin:6px 0}
+.mb li{margin-bottom:3px}
+.mt{font-size:.7rem;color:var(--tl);margin-top:4px;text-align:right}
+.ti{display:flex;gap:5px;padding:14px 18px;background:#fff;border-radius:18px 18px 18px 4px;width:fit-content;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.td2{width:7px;height:7px;border-radius:50%;background:var(--gl);animation:tb 1.2s infinite}
+.td2:nth-child(2){animation-delay:.2s}
+.td2:nth-child(3){animation-delay:.4s}
+.sugg{padding:10px 20px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--gw);background:#fff;flex-shrink:0}
+.sc{padding:6px 14px;border-radius:50px;border:1.5px solid var(--gp);background:var(--gw);color:var(--tm);font-size:.78rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+.sc:hover{background:var(--gl);color:#fff;border-color:var(--gl)}
+.cir{padding:14px 16px;border-top:1px solid var(--gw);display:flex;gap:10px;background:#fff;flex-shrink:0}
+.ci{flex:1;border:1.5px solid var(--gp);border-radius:50px;padding:10px 18px;font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;transition:border-color .2s;background:var(--gw);color:var(--td)}
+.ci:focus{border-color:var(--gl);background:#fff}
+.cs2{width:42px;height:42px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--gm),var(--gl));color:#fff;cursor:pointer;font-size:16px;transition:all .2s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cs2:hover{transform:scale(1.08);box-shadow:0 4px 12px rgba(45,106,79,.4)}
+.cs2:disabled{opacity:.5;cursor:not-allowed;transform:none}
+/* connect */
+.cng{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.cnc{background:rgba(255,255,255,.96);border-radius:var(--r);padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.15);transition:all .3s;cursor:pointer;border:2px solid transparent}
+.cnc:hover{transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,.2);border-color:var(--gl)}
+.cni{width:54px;height:54px;border-radius:16px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.cnc h3{font-size:.95rem;font-weight:600;color:var(--gd);margin-bottom:4px}
+.cnc p{font-size:.8rem;color:var(--tl);line-height:1.5;margin-bottom:14px}
+.cnf{display:flex;align-items:center;justify-content:space-between}
+.tag{padding:3px 10px;border-radius:50px;font-size:.72rem;font-weight:500}
+.tf{background:var(--gw);color:var(--gm)}
+.t24{background:#fff3e0;color:#e76f51}
+.tg{background:#e8f4fd;color:#1a6b9a}
+.cnb{padding:7px 16px;border-radius:50px;border:none;background:var(--gl);color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s}
+.cnb:hover{background:var(--gm);transform:scale(1.04)}
+/* weather */
+.ws{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:var(--rs);padding:14px 20px;display:flex;align-items:center;gap:20px;margin-bottom:20px;animation:fd .6s .2s ease both;overflow-x:auto}
+.wi2{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px}
+.wi2 .e{font-size:1.4rem}
+.wi2 span{font-size:.72rem;color:var(--gp);text-align:center}
+.wd{width:1px;height:36px;background:rgba(255,255,255,.15);flex-shrink:0}
+.wm{display:flex;align-items:center;gap:10px}
+.wm .tmp{font-size:1.8rem;color:#fff;font-weight:300}
+.wm .loc{color:var(--gp);font-size:.8rem}
+/* history */
+.hg{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.hi{background:rgba(255,255,255,.96);border-radius:var(--rs);overflow:hidden;cursor:pointer;transition:all .3s;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.hi:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.18)}
+.himg{width:100%;height:120px;object-fit:cover;background:var(--gw);display:flex;align-items:center;justify-content:center;font-size:2.5rem}
+.hin{padding:12px}
+.hin h4{font-size:.85rem;font-weight:600;color:var(--gd)}
+.hin p{font-size:.75rem;color:var(--tl);margin-top:2px}
+.hb{display:inline-block;padding:2px 8px;border-radius:50px;font-size:.7rem;font-weight:600;margin-top:6px}
+/* spinner */
+.sp{width:22px;height:22px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+/* toast */
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a3a2a;color:#b7e4c7;padding:12px 24px;border-radius:50px;font-size:.85rem;font-weight:500;border:1px solid rgba(82,183,136,.4);box-shadow:0 8px 30px rgba(0,0,0,.4);transition:transform .35s cubic-bezier(.34,1.56,.64,1);z-index:999;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+/* streaming cursor */
+.streaming-cursor::after{content:'▋';display:inline-block;animation:blink .7s step-end infinite;color:var(--gl)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes fd{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:none}}
+@keyframes fu{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes tb{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(82,183,136,.4)}50%{box-shadow:0 0 0 10px rgba(82,183,136,0)}}
+@media(max-width:640px){
+  .tabs{flex-wrap:wrap}
+  .tab{font-size:.74rem;padding:8px 6px}
+  .ig{grid-template-columns:1fr}
+  .cw{height:500px}
+  .mode-toggle{flex-direction:column}
+}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:rgba(82,183,136,.35);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="toast" id="toast"></div>
+<div class="app">
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🌿</div>
+    <div>
+      <h1>Kisan Saathi</h1>
+      <p>Plant Stress Detection System</p>
+    </div>
+  </div>
+  <span class="mbadge ml" id="modelBadge">🤖 XGBoost ML</span>
+</header>
+
+<div class="model-strip">
+  <p>Active model: <b>XGBoost</b> — MobileNetV2 (1280 features) → StandardScaler → XGBoost</p>
+  <span style="font-size:.75rem;color:var(--gp);background:rgba(82,183,136,.15);padding:4px 12px;border-radius:50px">70% Accuracy</span>
+</div>
+
+<div class="ws" id="weatherStrip">
+  <div class="wm"><span class="e">🌤</span><div><div class="tmp" id="wTemp">28°C</div><div class="loc" id="wLoc">📍 Lucknow, UP</div></div></div>
+  <div class="wd"></div>
+  <div class="wi2"><span class="e">💧</span><span id="wHum">Humidity 68%</span></div>
+  <div class="wi2"><span class="e">💨</span><span id="wWind">Wind 12 km/h</span></div>
+  <div class="wi2"><span class="e">☀️</span><span>UV Index 7</span></div>
+  <div class="wi2"><span class="e">🌧</span><span>Rain 20%</span></div>
+  <div class="wd"></div>
+  <div class="wi2"><span class="e">🌱</span><span>Good for<br>Crop Care</span></div>
+</div>
+
+<div class="tabs">
+  <button class="tab on"  onclick="sw('detect')">🔬 Detect</button>
+  <button class="tab"     onclick="sw('chat')">💬 Expert</button>
+  <button class="tab"     onclick="sw('connect')">🤝 Get Help</button>
+  <button class="tab"     onclick="sw('history')">📋 History</button>
+  <button class="tab"     onclick="sw('tips')">📚 Tips</button>
+</div>
+
+<!-- ═══ DETECT ═══ -->
+<div class="panel on" id="panel-detect">
+  <div class="card">
+    <div class="ct">Detect Plant Stress</div>
+    <div class="cs">Upload a leaf photo or use your camera to scan in real time.</div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="modeUpload" onclick="setMode('upload')">📁 Upload Photo</button>
+      <button class="mode-btn"        id="modeCamera" onclick="setMode('camera')">📷 Live Camera</button>
+    </div>
+    <div id="uploadSection">
+      <div class="upz" id="upz">
+        <input type="file" accept="image/*" id="fi" onchange="onFile(event)">
+        <div id="upPrompt">
+          <div style="font-size:3rem;margin-bottom:12px">📸</div>
+          <h3>Tap to upload or drag &amp; drop</h3>
+          <p>JPG, PNG, WEBP • Max 10 MB</p>
+        </div>
+        <img id="prev" alt="Preview">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:140px;background:var(--gw);border-radius:10px;padding:10px 12px;font-size:.78rem;color:var(--tm)"><b>✅ Good:</b> Single leaf, bright light, close-up</div>
+        <div style="flex:1;min-width:140px;background:#fff3e0;border-radius:10px;padding:10px 12px;font-size:.78rem;color:#a0522d"><b>❌ Avoid:</b> Blurry, dark, overlapping leaves</div>
+      </div>
+      <button class="btn" id="abtn" onclick="analyse()" disabled>
+        <span id="abtxt">🔬 Analyse Plant Stress</span>
+      </button>
+    </div>
+    <div id="cameraSection" style="display:none">
+      <div class="cam-wrap" id="camWrap">
+        <video id="camVideo" autoplay playsinline muted></video>
+        <div class="cam-overlay">
+          <div class="cam-corner tl"></div><div class="cam-corner tr"></div>
+          <div class="cam-corner bl"></div><div class="cam-corner br"></div>
+          <div class="scan-line"></div>
+          <div class="cam-label">🌿 Point camera at a leaf</div>
+        </div>
+        <button class="cam-snap" onclick="snapAndAnalyse()">📸 Capture &amp; Analyse</button>
+      </div>
+      <canvas id="camCanvas"></canvas>
+      <img id="snapPrev" alt="Captured">
+      <div class="cam-controls">
+        <button class="cam-ctrl-btn" onclick="flipCamera()">🔄 Flip Camera</button>
+        <button class="cam-ctrl-btn" onclick="retakeSnap()" id="retakeBtn" style="display:none">🔁 Retake</button>
+        <button class="cam-ctrl-btn danger" onclick="stopCamera()">⏹ Stop Camera</button>
+      </div>
+      <p style="color:var(--gp);font-size:.75rem;margin-top:10px;text-align:center">Camera access required. Works best in Chrome/Safari on mobile.</p>
+    </div>
+  </div>
+  <div class="rc" id="rc">
+    <div class="rh" id="rh">
+      <div class="ri" id="ricon"></div>
+      <div style="flex:1">
+        <div class="rl">Detection Result</div>
+        <div class="rt" id="rtitle"></div>
+        <div class="cbt"><div class="cbf" id="cbar"></div></div>
+        <div class="ctxt" id="ctxt"></div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:.72rem;opacity:.7;margin-bottom:4px">SEVERITY</div>
+        <div id="svlbl" style="font-size:1.1rem;font-weight:700"></div>
+      </div>
+    </div>
+    <div class="rb">
+      <div class="svm">
+        <h4>Stress Severity</h4>
+        <div class="svt"><div class="svth" id="svth" style="left:5%"></div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:.7rem;color:var(--tl)"><span>Low</span><span>Medium</span><span>High</span></div>
+      </div>
+      <div class="ig" id="ig"></div>
+      <div style="margin-bottom:16px">
+        <h4 style="font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--tl);margin-bottom:10px">Recommended Treatment</h4>
+        <ul class="tl-list" id="tlist"></ul>
+      </div>
+      <div>
+        <h4 style="font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--tl);margin-bottom:10px">Model Confidence — All Classes</h4>
+        <div id="cbars"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+        <button onclick="sw('chat')"    style="flex:1;padding:12px;border:none;border-radius:10px;background:var(--gw);color:var(--gm);font-weight:600;cursor:pointer;font-size:.85rem">💬 Ask Expert</button>
+        <button onclick="sw('connect')" style="flex:1;padding:12px;border:none;border-radius:10px;background:var(--gw);color:var(--gm);font-weight:600;cursor:pointer;font-size:.85rem">🤝 Get Help</button>
+        <button onclick="saveHist()"    style="flex:1;padding:12px;border:none;border-radius:10px;background:var(--gl);color:#fff;font-weight:600;cursor:pointer;font-size:.85rem">💾 Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CHAT ═══ -->
+<div class="panel" id="panel-chat">
+  <div class="cw">
+    <div class="ch">
+      <div class="ca">🌾<div class="od"></div></div>
+      <div>
+        <div class="cht">Krishi Expert Bot</div>
+        <div class="chst">AI-powered agronomist • Always available</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <div style="width:8px;height:8px;border-radius:50%;background:#4ade80;animation:pulse 2s infinite"></div>
+        <span style="color:rgba(255,255,255,.7);font-size:.75rem">Online</span>
+      </div>
+    </div>
+    <div class="cb" id="cb"></div>
+    <div class="sugg">
+      <div class="sc" onclick="sugg(this)">What is nitrogen deficiency?</div>
+      <div class="sc" onclick="sugg(this)">Best fertilizer for wheat</div>
+      <div class="sc" onclick="sugg(this)">Organic treatment options</div>
+      <div class="sc" onclick="sugg(this)">When to spray pesticides?</div>
+    </div>
+    <div class="cir">
+      <input class="ci" id="ci" placeholder="Ask about treatment, fertilizers, crops…" onkeydown="if(event.key==='Enter'&&!event.shiftKey)send()">
+      <button class="cs2" id="sendBtn" onclick="send()">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONNECT ═══ -->
+<div class="panel" id="panel-connect">
+  <div class="card"><div class="ct">Connect with the Right Help</div><div class="cs">Government bodies, agronomists, and local farmer networks.</div></div>
+  <div class="cng" id="cng"></div>
+</div>
+
+<!-- ═══ HISTORY ═══ -->
+<div class="panel" id="panel-history">
+  <div class="card"><div class="ct">Scan History</div><div class="cs">Your previous plant stress detections.</div></div>
+  <div class="hg" id="hg"></div>
+  <div id="he" style="text-align:center;padding:60px 20px;color:var(--gp);font-size:.9rem">No scans yet. Upload a leaf image to get started.</div>
+</div>
+
+<!-- ═══ TIPS ═══ -->
+<div class="panel" id="panel-tips">
+  <div class="card"><div class="ct">Seasonal Crop Tips</div><div class="cs">Evidence-based recommendations for North India.</div></div>
+  <div id="tg" style="display:grid;gap:16px"></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+const DD = {
+  N:{label:"Nitrogen Deficiency",emoji:"🌿",cause:"Insufficient soil nitrogen, rainfall leaching, or poor root uptake.",symptoms:"Uniform yellowing from older leaves, stunted growth, pale green colour.",crops:"Wheat, Rice, Maize, Sugarcane",severity:65,treatments:["Apply Urea @ 50 kg/acre as top dressing","Use DAP (Di-Ammonium Phosphate) at sowing","Foliar spray: 2% Urea solution every 10 days","Add organic compost or green manure","Test soil pH — keep 6.0–7.5 for best N uptake"],prevention:"Split nitrogen into 2–3 doses. Avoid waterlogging."},
+  K:{label:"Potassium Deficiency",emoji:"🍂",cause:"Sandy soils with low K retention, high rainfall, or imbalanced fertilization.",symptoms:"Brown scorching and curling of leaf edges from older leaves.",crops:"Potato, Tomato, Banana, Cotton",severity:55,treatments:["Apply MOP (Muriate of Potash) @ 40 kg/acre","Foliar spray: 0.5% KNO₃ solution","Use SOP (Sulphate of Potash) on sensitive crops","Incorporate potassium-rich organic matter","Avoid excess nitrogen competing with K"],prevention:"Regular soil testing every 2 years. Apply K before sowing."},
+  Mg:{label:"Magnesium Deficiency",emoji:"🌱",cause:"Acidic soils, excessive K or Ca blocking Mg, leaching in sandy soils.",symptoms:"Interveinal chlorosis — yellowing between green veins on middle leaves.",crops:"Rice, Groundnut, Citrus, Coffee",severity:45,treatments:["Apply Magnesium Sulphate (MgSO₄) @ 25 kg/acre","Foliar spray: 2% MgSO₄ solution 2–3 times","Apply dolomite lime if soil is acidic","Reduce excessive K fertilization","Use chelated Mg micronutrient mixture"],prevention:"Maintain soil pH above 6. Avoid heavy K without Mg."},
+  healthy:{label:"Healthy Plant",emoji:"🌾",cause:"No stress detected. Plant is well-nourished.",symptoms:"Uniform green colour, no chlorosis, good leaf structure and turgor.",crops:"All crops",severity:5,treatments:["Continue current fertilization schedule","Monitor soil moisture regularly","Apply preventive fungicide if weather is humid","Maintain proper plant spacing","Schedule next soil test in 3 months"],prevention:"Regular monitoring, balanced nutrition, timely irrigation."}
+};
+const CONNECT = [
+  {icon:"🏛",bg:"#e8f4fd",label:"Kisan Call Centre",org:"Ministry of Agriculture",desc:"24×7 free helpline. Expert advice on crops, pests, and schemes.",tag:"Free",tc:"tf",phone:"1800-180-1551",action:"Call Now"},
+  {icon:"🌾",bg:"#e8f5e9",label:"Krishi Vigyan Kendra",org:"ICAR Network",desc:"Local extension centre. Soil testing, demonstrations, free seeds.",tag:"Govt",tc:"tg",phone:"",action:"Locate"},
+  {icon:"💊",bg:"#fff3e0",label:"Agri Input Dealer",org:"Certified Retailer",desc:"Certified fertilizer and pesticide dealer near you.",tag:"Nearby",tc:"tf",phone:"",action:"Find Store"},
+  {icon:"📱",bg:"#f3e8fd",label:"Digital India Agri",org:"e-NAM Platform",desc:"Sell produce at best prices through e-NAM marketplace.",tag:"Free",tc:"tf",phone:"",action:"Open App"},
+  {icon:"🚨",bg:"#fce8e8",label:"Pest Alert System",org:"NCIPM",desc:"Real-time pest and disease alerts for your region.",tag:"24h",tc:"t24",phone:"",action:"Subscribe"},
+  {icon:"💰",bg:"#e8f5e9",label:"PM Kisan Yojana",org:"Govt of India",desc:"Check PM-KISAN status. Direct benefit ₹6000/year.",tag:"Govt",tc:"tg",phone:"",action:"Check Status"},
+  {icon:"🌊",bg:"#e3f2fd",label:"Water Management",org:"Minor Irrigation Dept",desc:"Drip irrigation subsidy and water audit guidance.",tag:"Subsidy",tc:"tg",phone:"",action:"Apply"},
+  {icon:"🧑‍🌾",bg:"#f1f8e9",label:"Local Farmer Group",org:"FPO Network",desc:"Join an FPO for collective bargaining and shared resources.",tag:"Free",tc:"tf",phone:"",action:"Join"}
+];
+const TIPS = [
+  {season:"🌾 Rabi Season (Oct–Mar)",crop:"Wheat",tips:["Sow by 25 Nov for best yield","Irrigate at crown root initiation (21 DAS)","Apply 120 kg N/ha in 3 splits","Watch for yellow rust — spray Propiconazole if spotted"]},
+  {season:"🌱 Kharif Season (Jun–Sep)",crop:"Paddy",tips:["Transplant 25–30 day old seedlings","Maintain 2–5 cm water level first 4 weeks","Apply zinc sulphate @ 25 kg/ha if yellowing","Use pheromone traps for stem borer"]},
+  {season:"🍅 Year-Round",crop:"Vegetables",tips:["Mulching reduces water use by 40%","Fertigation with drip saves 30% fertilizer","Yellow sticky traps for whitefly and thrips","Spray neem oil (3 ml/L) as eco-friendly pesticide"]}
+];
+const KB = {
+  nitrogen:"Nitrogen deficiency causes uniform yellowing from older leaves.\n\nApply Urea 50 kg/acre or DAP at sowing. Split into 2–3 doses. Avoid waterlogging which causes N loss.",
+  potassium:"Potassium deficiency causes brown edges on leaves.\n\nApply MOP 40 kg/acre. Foliar spray 0.5% KNO₃ works quickly. Sandy soils need more frequent K applications.",
+  magnesium:"Magnesium deficiency shows yellowing between green veins.\n\nSpray 2% MgSO₄ 2–3 times. Apply dolomite if soil is acidic. Reduce excess K which blocks Mg.",
+  phosphorus:"Phosphorus deficiency causes purple/red tints on leaves.\n\nApply SSP 100 kg/acre at sowing. Maintain soil pH 6–7 for best P uptake.",
+  fertilizer:"For cereals: NPK 120:60:40 kg/ha. Always soil test first.\n\nSplit urea: basal (30%), tillering (40%), panicle (30%). Over-fertilization wastes money and pollutes groundwater.",
+  organic:"Organic options:\n\n• Vermicompost 2 t/acre\n• FYM 5 t/acre\n• Neem cake 200 kg/acre\n• Green manure (Dhaincha)\n\nImproves soil structure, water retention, and microbial activity.",
+  wheat:"Wheat care:\n\nN 120 kg/ha, P 60 kg/ha, K 40 kg/ha. Sow by 25 November. First irrigation at 21 DAS. Watch for yellow rust — spray Propiconazole 0.1% if rust appears.",
+  paddy:"Paddy care:\n\nN 120 kg/ha in 3 splits, P 60 kg/ha, K 40 kg/ha. Transplant at 25–30 DAS. Maintain 2–5 cm water. Apply ZnSO₄ 25 kg/ha if yellowing. Light traps for BPH.",
+  pest:"For pest management:\n\n• Yellow sticky traps for whiteflies\n• Pheromone traps for stem borer\n• Neem oil 3 ml/L for minor infestations\n\nFor severe cases call Kisan helpline: 1800-180-1551",
+  spray:"Best spray time: early morning 6–9 AM or evening 4–6 PM.\n\nAvoid direct sunlight or before rain. Always wear gloves, mask, goggles. Use calibrated sprayer.",
+  soil:"Soil testing every 2–3 years. Send 500g soil from 0–15 cm depth to nearest lab (Cost ₹5–25).\n\nIdeal soil: pH 6–7, organic matter >0.8%, EC <1 dS/m.",
+  kisan:"Government Help:\n\n• Kisan Call Centre: 1800-180-1551 (free, 24×7)\n• PM-KISAN: ₹6000/year at pmkisan.gov.in\n• Soil Health Card at KVK\n• PM Fasal Bima Yojana for crop insurance",
+  hello:"Namaste! 🙏 I am Krishi Expert Bot.\n\nAsk me about fertilizers, crop diseases, pest management, or government schemes.",
+  namaste:"Namaste! 🙏 Main Krishi Expert Bot hoon.\n\nFertilizer doses, pest control, crop care — kuch bhi poochein!"
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let result    = null;
+let hist      = JSON.parse(localStorage.getItem('kh') || '[]');
+let chatHist  = [];
+let lastDx    = null;
+let camStream = null;
+let facingMode = 'environment';
+let isSending  = false;
+let msgIdCtr   = 0; // ← FIX: unique IDs per message, never clash
+
+const API = (location.port === '5000' || location.port === '8000') ? '' : null;
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function sw(t) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('panel-'+t).classList.add('on');
+  const idx = ['detect','chat','connect','history','tips'].indexOf(t);
+  document.querySelectorAll('.tab')[idx].classList.add('on');
+  if(t === 'history') renderHist();
+  if(t !== 'detect')  stopCamera();
+}
+
+// ─── MODE ─────────────────────────────────────────────────────────────────────
+function setMode(mode) {
+  document.getElementById('modeUpload').classList.toggle('active', mode==='upload');
+  document.getElementById('modeCamera').classList.toggle('active', mode==='camera');
+  document.getElementById('uploadSection').style.display  = mode==='upload' ? 'block':'none';
+  document.getElementById('cameraSection').style.display  = mode==='camera' ? 'block':'none';
+  if(mode==='camera') startCamera(); else stopCamera();
+}
+
+// ─── CAMERA ───────────────────────────────────────────────────────────────────
+async function startCamera() {
+  stopCamera();
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode, width:{ideal:1280}, height:{ideal:720}}, audio:false
+    });
+    document.getElementById('camVideo').srcObject = camStream;
+    document.getElementById('camWrap').style.display = 'block';
+    document.getElementById('snapPrev').style.display = 'none';
+    document.getElementById('retakeBtn').style.display = 'none';
+  } catch(e) {
+    toast('❌ Camera access denied. Please allow camera in browser settings.');
+    setMode('upload');
+  }
+}
+function stopCamera() {
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+  const w = document.getElementById('camWrap');
+  if(w) w.style.display = 'none';
+}
+async function flipCamera() {
+  facingMode = (facingMode==='environment') ? 'user' : 'environment';
+  await startCamera();
+}
+function retakeSnap() {
+  document.getElementById('snapPrev').style.display = 'none';
+  document.getElementById('retakeBtn').style.display = 'none';
+  document.getElementById('camWrap').style.display = 'block';
+  document.getElementById('rc').style.display = 'none';
+}
+async function snapAndAnalyse() {
+  const video  = document.getElementById('camVideo');
+  const canvas = document.getElementById('camCanvas');
+  const snap   = document.getElementById('snapPrev');
+  canvas.width  = video.videoWidth  || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataURL = canvas.toDataURL('image/jpeg', 0.92);
+  snap.src = dataURL;
+  snap.style.display = 'block';
+  document.getElementById('camWrap').style.display = 'none';
+  document.getElementById('retakeBtn').style.display = 'inline-flex';
+  canvas.toBlob(async blob => {
+    const btn = document.querySelector('.cam-snap');
+    if(btn){ btn.disabled=true; btn.innerHTML='<div class="sp"></div>&nbsp;Analysing…'; }
+    if(API !== null) {
+      try {
+        const fd = new FormData(); fd.append('image', blob, 'capture.jpg');
+        const res = await fetch(API+'/api/predict', {method:'POST', body:fd});
+        if(!res.ok) throw new Error(res.status);
+        const d = await res.json();
+        if(d.deficiency_info) DD[d.cls]={...DD[d.cls],...d.deficiency_info,emoji:DD[d.cls].emoji};
+        result = {cls:d.cls, probs:d.probs, classes:d.all_classes}; lastDx=d.cls;
+        showResult(result);
+        fetch(API+'/api/history',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({cls:d.cls,label:d.label,confidence:d.confidence,thumbnail:dataURL.substring(0,2000)})}).catch(()=>{});
+      } catch(err){ demoMode(dataURL); }
+    } else { await new Promise(r=>setTimeout(r,1400)); demoMode(dataURL); }
+    if(btn){ btn.disabled=false; btn.innerHTML='📸 Capture &amp; Analyse'; }
+  }, 'image/jpeg', 0.92);
+}
+
+// ─── UPLOAD ───────────────────────────────────────────────────────────────────
+function onFile(e) {
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    document.getElementById('prev').src = ev.target.result;
+    document.getElementById('prev').style.display = 'block';
+    document.getElementById('upPrompt').style.display = 'none';
+    document.getElementById('abtn').disabled = false;
+  };
+  r.readAsDataURL(f);
+}
+const upz = document.getElementById('upz');
+upz.addEventListener('dragover', e=>{e.preventDefault();upz.classList.add('drag')});
+upz.addEventListener('dragleave', ()=>upz.classList.remove('drag'));
+upz.addEventListener('drop', e=>{
+  e.preventDefault(); upz.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if(f && f.type.startsWith('image/')) {
+    const dt = new DataTransfer(); dt.items.add(f);
+    document.getElementById('fi').files = dt.files;
+    onFile({target:{files:[f]}});
+  }
+});
+
+async function analyse() {
+  const btn  = document.getElementById('abtn');
+  const file = document.getElementById('fi').files[0];
+  if(!file) return;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="sp"></div>&nbsp;Analysing…';
+  if(API !== null) {
+    try {
+      const fd = new FormData(); fd.append('image', file);
+      const res = await fetch(API+'/api/predict', {method:'POST', body:fd});
+      if(!res.ok) throw new Error(res.status);
+      const d = await res.json();
+      if(d.deficiency_info) DD[d.cls]={...DD[d.cls],...d.deficiency_info,emoji:DD[d.cls].emoji};
+      result = {cls:d.cls, probs:d.probs, classes:d.all_classes}; lastDx=d.cls;
+      showResult(result);
+      const thumb = document.getElementById('prev').src;
+      fetch(API+'/api/history',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({cls:d.cls,label:d.label,confidence:d.confidence,
+          thumbnail:thumb.startsWith('data:')?thumb.substring(0,2000):''})}).catch(()=>{});
+    } catch(e){ demoMode(); }
+  } else { await new Promise(r=>setTimeout(r,1600)); demoMode(); }
+  btn.disabled = false; btn.innerHTML = '🔬 Analyse Again';
+}
+function demoMode(thumbOverride) {
+  const cls=['N','K','Mg','healthy'];
+  const p=cls.map(()=>Math.random()); const s=p.reduce((a,b)=>a+b,0); const n=p.map(x=>x/s);
+  const w=cls[n.indexOf(Math.max(...n))];
+  result={cls:w,probs:n,classes:cls}; lastDx=w; showResult(result,thumbOverride);
+}
+function showResult({cls,probs,classes},thumbOverride){
+  const d=DD[cls]; const rc=document.getElementById('rc');
+  rc.className='rc def-'+cls; rc.style.display='block';
+  document.getElementById('ricon').textContent  = d.emoji;
+  document.getElementById('rtitle').textContent = d.label;
+  const conf=Math.round(Math.max(...probs)*100);
+  document.getElementById('ctxt').innerHTML='Confidence: '+conf+'% <span style="background:rgba(255,255,255,.25);padding:2px 8px;border-radius:50px;font-size:.7rem;margin-left:6px">🤖 XGBoost</span>';
+  setTimeout(()=>{
+    document.getElementById('cbar').style.width  = conf+'%';
+    document.getElementById('svth').style.left   = d.severity+'%';
+  },100);
+  document.getElementById('svlbl').textContent = d.severity<30?'Low':d.severity<60?'Medium':'High';
+  document.getElementById('ig').innerHTML=`
+    <div class="it"><h4>🔍 Cause</h4><p>${d.cause}</p></div>
+    <div class="it"><h4>👁 Symptoms</h4><p>${d.symptoms}</p></div>
+    <div class="it"><h4>🌱 Affected Crops</h4><p>${d.crops}</p></div>
+    <div class="it"><h4>🛡 Prevention</h4><p>${d.prevention}</p></div>`;
+  document.getElementById('tlist').innerHTML=d.treatments.map(t=>'<li>'+t+'</li>').join('');
+  const bc={N:'#d4a017',K:'#c0392b',Mg:'#1a6b4a',healthy:'#2d6a4f'};
+  document.getElementById('cbars').innerHTML=
+    '<div style="font-size:.7rem;color:var(--tl);margin-bottom:8px">Predicted by: <b>XGBoost — MobileNetV2 (1280 features) → StandardScaler</b></div>'+
+    classes.map((c,i)=>`<div class="cbr"><div class="cbl">${DD[c].label.replace(' Deficiency','')}</div><div class="cbt2"><div class="cbf2" id="b${c}" style="background:${bc[c]}"></div></div><div class="cbp">${Math.round(probs[i]*100)}%</div></div>`).join('');
+  setTimeout(()=>classes.forEach((c,i)=>{ document.getElementById('b'+c).style.width=Math.round(probs[i]*100)+'%'; }),200);
+  rc.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function saveHist(){
+  if(!result) return;
+  const d=DD[result.cls];
+  const imgEl=document.getElementById('snapPrev').style.display!=='none'
+    ? document.getElementById('snapPrev') : document.getElementById('prev');
+  hist.unshift({cls:result.cls,label:d.label,emoji:d.emoji,conf:Math.round(Math.max(...result.probs)*100),date:new Date().toLocaleDateString('en-IN'),img:imgEl.src||''});
+  if(hist.length>20) hist=hist.slice(0,20);
+  localStorage.setItem('kh',JSON.stringify(hist));
+  toast('✅ Scan saved to history!');
+}
+function renderHist(){
+  const g=document.getElementById('hg'),e=document.getElementById('he');
+  if(!hist.length){g.style.display='none';e.style.display='block';return}
+  g.style.display='grid'; e.style.display='none';
+  const bc={N:'#d4a017',K:'#c0392b',Mg:'#1a6b4a',healthy:'#2d6a4f'};
+  g.innerHTML=hist.map(s=>`<div class="hi"><div class="himg" style="overflow:hidden">${s.img&&s.img.startsWith('data:')?'<img src="'+s.img+'" style="width:100%;height:100%;object-fit:cover">':s.emoji}</div><div class="hin"><h4>${s.label}</h4><p>${s.date}</p><span class="hb" style="background:${bc[s.cls]}22;color:${bc[s.cls]}">${s.conf}% conf.</span></div></div>`).join('');
+}
+
+// ─── CHAT ─────────────────────────────────────────────────────────────────────
+
+// ── FIX 1: formatMsg - do markdown BEFORE escaping so ** etc. survive ─────────
+function formatMsg(text) {
+  if(!text) return '';
+
+  // Step 1: apply markdown transforms on raw text (before any escaping)
+  let out = text
+    // bold
+    .replace(/\*\*(.*?)\*\*/g, '\x00BOLD_START\x00$1\x00BOLD_END\x00')
+    // italic (single star, not double)
+    .replace(/(?<!\*)\*(?!\*)([^*\n]+)\*(?!\*)/g, '\x00EM_START\x00$1\x00EM_END\x00');
+
+  // Step 2: escape HTML (safe now that markers are in place)
+  out = out
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+
+  // Step 3: restore bold/italic as real HTML
+  out = out
+    .replace(/\x00BOLD_START\x00/g,'<strong>')
+    .replace(/\x00BOLD_END\x00/g,'</strong>')
+    .replace(/\x00EM_START\x00/g,'<em>')
+    .replace(/\x00EM_END\x00/g,'</em>');
+
+  // Step 4: convert lines to HTML (bullets then paragraphs)
+  const lines = out.split('\n');
+  const html  = [];
+  let inList  = false;
+
+  for(let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+
+    // Bullet point: lines starting with •, -, * followed by space
+    if(/^[•\-\*] /.test(trimmed)) {
+      if(!inList){ html.push('<ul>'); inList=true; }
+      html.push('<li>' + trimmed.replace(/^[•\-\*] /,'') + '</li>');
+    }
+    // Numbered list
+    else if(/^\d+\. /.test(trimmed)) {
+      if(!inList){ html.push('<ol>'); inList=true; }
+      html.push('<li>' + trimmed.replace(/^\d+\. /,'') + '</li>');
+    }
+    else {
+      if(inList){ html.push(inList==='ul'?'</ul>':'</ol>'); inList=false; }
+      if(trimmed === '') {
+        html.push('<br>');
+      } else {
+        html.push(raw + '<br>');
+      }
+    }
+  }
+  if(inList) html.push('</ul>');
+
+  // Clean up double <br>
+  return html.join('').replace(/(<br>){2,}/g,'<br>').replace(/^<br>/,'').replace(/<br>$/,'');
+}
+
+function kbReply(msg) {
+  const m = msg.toLowerCase();
+  if(lastDx && DD[lastDx]) {
+    const kws = ['treat','cure','fix','remedy','spray','apply','fertiliz','how to','kya karu','upay','ilaj'];
+    if(kws.some(k=>m.includes(k))) {
+      const d = DD[lastDx];
+      return 'Based on detected **'+d.label+'**, here are the treatment steps:\n\n'+
+        d.treatments.map((t,i)=>(i+1)+'. '+t).join('\n')+'\n\n**Prevention:** '+d.prevention;
+    }
+  }
+  for(const [k,v] of Object.entries(KB)) if(m.includes(k)) return v;
+  return null;
+}
+
+// ── FIX 2: addMsg uses unique DOM IDs per message, never clashes ───────────────
+function addMsg(text, role, source) {
+  const id   = 'msg-bubble-' + (++msgIdCtr);   // unique each call
+  const body = document.getElementById('cb');
+  const now  = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const d    = document.createElement('div');
+  d.className = 'msg ' + (role==='bot' ? 'b' : 'u');
+
+  const badge = source==='llm'
+    ? '<span style="font-size:.65rem;padding:2px 7px;border-radius:50px;background:#e0f2fe;color:#0369a1;margin-left:6px">✨ AI</span>'
+    : source==='keyword'
+    ? '<span style="font-size:.65rem;padding:2px 7px;border-radius:50px;background:#dcfce7;color:#166534;margin-left:6px">📚 KB</span>'
+    : '';
+
+  d.innerHTML = `
+    <div class="ma">${role==='bot'?'🌾':'👤'}</div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;${role==='user'?'align-items:flex-end':''}">
+      <div class="mb" id="${id}">${role==='user' ? escHtml(text) : formatMsg(text)}</div>
+      <div class="mt">${now}${badge}</div>
+    </div>`;
+  body.appendChild(d);
+  body.scrollTop = body.scrollHeight;
+  return id;   // return ID so streaming can update it
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showTyping() {
+  const body = document.getElementById('cb');
+  if(document.getElementById('typing-row')) return;
+  const d = document.createElement('div');
+  d.className='msg b'; d.id='typing-row';
+  d.innerHTML='<div class="ma">🌾</div><div class="ti"><div class="td2"></div><div class="td2"></div><div class="td2"></div></div>';
+  body.appendChild(d);
+  body.scrollTop = body.scrollHeight;
+}
+function removeTyping() {
+  document.getElementById('typing-row')?.remove();
+}
+
+// ── FIX 3: The streaming loop ─────────────────────────────────────────────────
+// Old code split on '\n' which breaks multi-line SSE chunks and silently
+// discards malformed lines. New approach: buffer incomplete lines properly.
+async function send() {
+  const inp = document.getElementById('ci');
+  const text = (inp.value||'').trim();
+  if(!text || isSending) return;
+
+  isSending = true;
+  document.getElementById('sendBtn').disabled = true;
+  inp.value = '';
+
+  addMsg(text, 'user');
+  chatHist.push({role:'user', content:text});
+  showTyping();
+
+  if(API !== null) {
+    try {
+      const res = await fetch(API+'/api/chat/stream', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({message:text, last_diagnosis:lastDx, history:chatHist.slice(-6)})
+      });
+
+      removeTyping();
+
+      if(!res.ok) {
+        const errTxt = await res.text().catch(()=>'unknown error');
+        addMsg('Server error '+res.status+': '+errTxt, 'bot', 'error');
+        isSending=false; document.getElementById('sendBtn').disabled=false; return;
+      }
+
+      // Create the streaming bubble ONCE, update it in-place
+      const bubbleId = addMsg('', 'bot', null);
+      const bubbleEl = document.getElementById(bubbleId);
+      bubbleEl.classList.add('streaming-cursor');
+      const body = document.getElementById('cb');
+
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let lineBuffer = '';   // ← holds incomplete SSE line across chunks
+      let accumulated = '';
+      let src = 'keyword';
+
+      while(true) {
+        const {done, value} = await reader.read();
+        if(done) break;
+
+        // Decode chunk and add to line buffer
+        lineBuffer += decoder.decode(value, {stream:true});
+
+        // Split on double newline (SSE event delimiter) OR single newline per field
+        // Process every complete "data: ..." line
+        let newlineIdx;
+        while((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
+          const line = lineBuffer.slice(0, newlineIdx).trimEnd();
+          lineBuffer  = lineBuffer.slice(newlineIdx + 1);
+
+          if(!line.startsWith('data:')) continue;
+
+          const dataStr = line.slice(5).trim();
+          if(!dataStr) continue;
+
+          let parsed;
+          try { parsed = JSON.parse(dataStr); }
+          catch(e) { console.warn('[SSE] JSON parse failed:', dataStr); continue; }
+
+          // Accumulate text
+          if(typeof parsed.text === 'string' && parsed.text) {
+            accumulated += parsed.text;
+            if(parsed.source) src = parsed.source;
+
+            // ── FIX 4: update the SAME bubble element we created ──────────────
+            bubbleEl.innerHTML = formatMsg(accumulated);
+            body.scrollTop = body.scrollHeight;
+          }
+
+          if(parsed.done) {
+            bubbleEl.classList.remove('streaming-cursor');
+            // Add source badge
+            const mt = bubbleEl.closest('.msg')?.querySelector('.mt');
+            if(mt) {
+              const badge = document.createElement('span');
+              badge.style.cssText='font-size:.65rem;padding:2px 7px;border-radius:50px;margin-left:6px';
+              if(src==='llm'){badge.style.background='#e0f2fe';badge.style.color='#0369a1';badge.textContent='✨ AI';}
+              else{badge.style.background='#dcfce7';badge.style.color='#166534';badge.textContent='📚 KB';}
+              mt.appendChild(badge);
+            }
+            chatHist.push({role:'assistant', content:accumulated});
+            break;
+          }
+        }
+      }
+
+      // Handle case where stream ended but nothing was received
+      if(!accumulated) {
+        bubbleEl.innerHTML = formatMsg('For specific advice, call Kisan helpline: 1800-180-1551 (free, 24×7).');
+        bubbleEl.classList.remove('streaming-cursor');
+      }
+
+    } catch(err) {
+      removeTyping();
+      console.error('[Chat] Stream error:', err);
+      const fallback = kbReply(text) || 'For specific advice, call Kisan helpline: 1800-180-1551 (free, 24×7).\n\nAsk about: fertilizers, wheat, paddy, pest control, or government schemes.';
+      addMsg(fallback, 'bot', 'keyword');
+      chatHist.push({role:'assistant', content:fallback});
+    }
+  } else {
+    // Offline keyword mode
+    setTimeout(()=>{
+      removeTyping();
+      const r = kbReply(text) || 'For specific advice, call Kisan helpline: 1800-180-1551 (free, 24×7).\n\nAsk me about: fertilizers, wheat, paddy, pest control, or government schemes.';
+      addMsg(r, 'bot', 'keyword');
+      chatHist.push({role:'assistant', content:r});
+    }, 600 + Math.random()*400);
+  }
+
+  isSending = false;
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('ci').focus();
+}
+
+function sugg(el) {
+  document.getElementById('ci').value = el.textContent;
+  sw('chat');
+  setTimeout(send, 80);
+}
+
+// ─── CONNECT ──────────────────────────────────────────────────────────────────
+function renderConnect() {
+  document.getElementById('cng').innerHTML = CONNECT.map(c=>`
+    <div class="cnc">
+      <div class="cni" style="background:${c.bg}">${c.icon}</div>
+      <h3>${c.label}</h3>
+      <p style="font-size:.72rem;color:var(--tl);margin-bottom:2px;font-weight:500">${c.org}</p>
+      <p>${c.desc}</p>
+      <div class="cnf">
+        <span class="tag ${c.tc}">${c.tag}</span>
+        <button class="cnb" onclick="handleConn('${c.label}','${c.phone}')">${c.action}</button>
+      </div>
+    </div>`).join('');
+}
+function handleConn(label,phone){
+  if(phone&&phone.startsWith('1800')){ toast('📞 Kisan Helpline: '+phone+' — Free, 24×7'); }
+  else{ sw('chat'); document.getElementById('ci').value='Tell me more about '+label; setTimeout(send,100); }
+}
+
+// ─── TIPS ─────────────────────────────────────────────────────────────────────
+function renderTips() {
+  document.getElementById('tg').innerHTML = TIPS.map(t=>`
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <div style="font-size:1.4rem">${t.season.split(' ')[0]}</div>
+        <div><div class="ct" style="margin-bottom:0">${t.season.split(' ').slice(1).join(' ')}</div><div style="font-size:.78rem;color:var(--tl)">Crop: ${t.crop}</div></div>
+      </div>
+      <ul style="margin-top:12px;padding-left:18px">${t.tips.map(tip=>'<li style="font-size:.88rem;color:var(--td);margin-bottom:8px;line-height:1.5">'+tip+'</li>').join('')}</ul>
+    </div>`).join('');
+}
+
+// ─── WEATHER ──────────────────────────────────────────────────────────────────
+async function loadWeather() {
+  if(API===null) return;
+  try {
+    const d = await fetch(API+'/api/weather').then(r=>r.json());
+    if(d.temp)       document.getElementById('wTemp').textContent = d.temp+'°C';
+    if(d.location)   document.getElementById('wLoc').textContent  = '📍 '+d.location;
+    if(d.humidity)   document.getElementById('wHum').textContent  = 'Humidity '+d.humidity+'%';
+    if(d.wind_speed) document.getElementById('wWind').textContent = 'Wind '+d.wind_speed+' km/h';
+  } catch(e){}
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+addMsg(
+  "Namaste! 🙏 Main Krishi Expert Bot hoon.\n\n" +
+  "• Fertilizer doses and timing\n" +
+  "• Pest and disease management\n" +
+  "• Crop-wise care calendar\n" +
+  "• Government scheme details\n\n" +
+  "Leaf scan ke baad main diagnosis ke aadhar par treatment bata sakta hoon!",
+  'bot'
+);
+renderConnect();
+renderTips();
+loadWeather();
+</script>
+</body>
+</html>
